@@ -63,7 +63,9 @@ def main():
 
         # For temporary
         args.output_dir = "mnist_output"
-
+        tar_tmp = tarfile.open(args.tar)
+        tar_tmp.extractall(tmp_dir)
+        tar_tmp.close()
         fileList = glob.glob(tmp_dir + "/**/*.png", recursive=True)
         print("Total dataset size : " + str(len(fileList)))
 
