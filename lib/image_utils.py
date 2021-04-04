@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import torch
 from torch.autograd import Variable
-
+import os
 
 def preprocess_image(img, cuda=False):
     means=[0.485, 0.456, 0.406]
@@ -30,7 +30,11 @@ def save_as_gray_image(img, filename, percentile=99):
     vmin = -span
     vmax = span
     img_2d = np.clip((img_2d - vmin) / (vmax - vmin), -1, 1)
-    cv2.imwrite(filename, img_2d * 255)
+    dirPath = os.path.dirname(filename)
+    if not os.path.isdir(dirPath) :
+        os.makedirs(dirPath)
+        #print("creating directory..")
+    result = cv2.imwrite(filename, img_2d * 255)
 
     return
 

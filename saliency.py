@@ -15,6 +15,9 @@ from lib.gradients import VanillaGrad, SmoothGrad, GuidedBackpropGrad, GuidedBac
 from lib.image_utils import preprocess_image, save_as_gray_image
 from lib.labels import IMAGENET_LABELS
 
+import tarfile
+import glob
+import time
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -26,6 +29,7 @@ def parse_args():
                         help='Result directory path')
     parser.add_argument('--n_samples', type=int, default=10,
                         help='Sample size of SmoothGrad')
+    parser.add_argument('--tar', type=str, help="dataset tar file")
     args = parser.parse_args()
     args.cuda = args.cuda and torch.cuda.is_available()
     if args.cuda:
@@ -50,6 +54,45 @@ def main():
 
     target_layer_names = ['35']
     target_index = None
+
+
+    # for testing..
+    if args.tar :
+        cwd = os.getcwd()
+        tmp_dir = "temp_data"
+
+        # For temporary
+        args.output_dir = "mnist_output"
+
+        fileList = glob.glob(tmp_dir + "/**/*.png", recursive=True)
+        print("Total dataset size : " + str(len(fileList)))
+
+        start = time.time()
+        for filePath in fileList :
+            img = cv2.imread(filePath, 1)
+            img = np.float32(cv2.resize(img, (224, 224))) / 255
+            preprocessed_img = preprocess_image(img, args.cuda)
+            model = vgg19(pretrained=True)
+            output = model(preprocessed_img)
+            pred_index = np.argmax(output.data.cpu().numpy())
+            print('Prediction: {}'.format(IMAGENET_LABELS[pred_index]))
+
+            smooth_grad = SmoothGrad(       pretrained_model=model,        cuda=args.cuda,        n_samples=args.n_samples,        magnitude=True)
+            smooth_saliency = smooth_grad(preprocessed_img, index=target_index)
+            output_path = os.path.join(cwd,args.output_dir, filePath)
+            print("Output Path : " + output_path)
+            save_as_gray_image(smooth_saliency, output_path)
+            print('Saved smooth gradient image')
+        
+        timeConsumed = "Time cost : " + str(time.time() - start)
+        f = open("time.txt","w")
+        f.write(timeConsumed)
+        f.close()
+
+        return
+
+
+
 
     # Prepare input image
     if args.img:
